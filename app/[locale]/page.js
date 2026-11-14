@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getProducts, collections } from '../../lib/shopify';
-import { t } from '../../lib/i18n';
+import { getCurrencyLocale, t } from '../../lib/i18n';
+import { getProductPrice } from '../../lib/product-data';
 import ProductCard from '../../components/ProductCard';
 import HeroCarousel from '../../components/HeroCarousel';
 
@@ -9,59 +10,49 @@ export default async function Home({ params }) {
   const d = t(locale);
   const products = await getProducts();
   const featuredCollections = collections.filter((collection) => collection.featured);
-  const heroSlides = [
-    { src: '/autumn-lakeside-banner.png', alt: d.heroBannerAlts[0] },
-    {
-      src: collections.find((collection) => collection.handle === 'oil-concentrates').image,
-      alt: d.heroBannerAlts[1],
-    },
-    {
-      src: collections.find((collection) => collection.handle === 'cbd-flowers-herbs').image,
-      alt: d.heroBannerAlts[2],
-    },
+  const currencyLocale = getCurrencyLocale(locale);
+  const heroImageSources = [
+    '/autumn-lakeside-banner.png',
+    collections.find((collection) => collection.handle === 'oil-concentrates').image,
+    collections.find((collection) => collection.handle === 'cbd-flowers-herbs').image,
   ];
+  const heroSlides = d.heroSlides.map((copy, index) => ({
+    ...copy,
+    src: heroImageSources[index],
+    alt: d.heroBannerAlts[index],
+  }));
 
   return (
     <>
       <HeroCarousel
         slides={heroSlides}
+        primaryHref={`/${locale}/products`}
+        primaryLabel={d.discover}
+        secondaryHref="https://cleverbotanics.com/collections/most-popular"
+        secondaryLabel={d.originalStore}
+        metrics={[
+          { value: products.length, label: d.productCountLabel },
+          { value: featuredCollections.length, label: d.collectionsCountLabel },
+          { value: 'Shopify', label: d.checkoutMetricLabel },
+        ]}
         labels={{
           carousel: d.heroCarousel,
+          metrics: d.keyMetrics,
           previous: d.previousBanner,
           next: d.nextBanner,
           showSlide: d.showBannerSlide,
         }}
-      >
-        <div className="hero-content">
-            <span className="eyebrow light">{d.heroEyebrow}</span>
-            <h1>{d.heroTitle} <em>{d.heroTitleEm}</em></h1>
-            <p>{d.heroDescription}</p>
-            <div className="hero-actions">
-              <Link className="btn btn-light" href={`/${locale}/products`}>
-                {d.discover} <span aria-hidden="true">↗</span>
-              </Link>
-              <a
-                className="btn btn-outline"
-                href="https://cleverbotanics.com/collections/most-popular"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {d.originalStore} <span aria-hidden="true">↗</span>
-              </a>
-            </div>
-            <div className="hero-note">
-              <span className="hero-note-mark" aria-hidden="true">✳</span>
-              {d.heroNote}
-            </div>
-        </div>
-      </HeroCarousel>
+      />
 
       <section className="trust-bar" aria-label={d.commitments}>
         <div className="container trust-bar-inner">
-          {d.trustPoints.map((point, index) => (
-            <div className="trust-point" key={point}>
+          {d.trustDetails.map(([title, subtitle], index) => (
+            <div className="trust-point" key={title}>
               <span className="trust-point-number">0{index + 1}</span>
-              <span>{point}</span>
+              <div>
+                <strong>{title}</strong>
+                <span>{subtitle}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -77,26 +68,49 @@ export default async function Home({ params }) {
             <p>{d.collectionIntro}</p>
           </div>
           <div className="category-grid">
-            {featuredCollections.map((collection, index) => (
-              <Link
-                key={collection.handle}
-                className={`category-card category-${collection.handle}`}
-                href={`/${locale}/collections/${collection.handle}`}
-              >
-                <img
-                  className="category-card-image"
-                  src={collection.image}
-                  alt=""
-                  loading="lazy"
-                />
-                <span className="category-number">0{index + 1} / COLLECTION</span>
-                <div className="category-card-content">
-                  <p>{d.collections[collection.handle]?.[1] || collection.description}</p>
-                  <h3>{d.collections[collection.handle]?.[0] || collection.title}</h3>
-                  <span className="category-card-link">{d.browse} <span aria-hidden="true">↗</span></span>
-                </div>
-              </Link>
-            ))}
+            {featuredCollections.map((collection, index) => {
+              const collectionProducts = products.filter((product) =>
+                (product.collections || [product.collection]).includes(collection.handle));
+              const availablePrices = collectionProducts
+                .map(getProductPrice)
+                .filter(Boolean)
+                .sort((a, b) => a.amount - b.amount);
+              const fromPrice = availablePrices.length
+                ? new Intl.NumberFormat(currencyLocale, {
+                  style: 'currency',
+                  currency: availablePrices[0].currencyCode,
+                }).format(availablePrices[0].amount)
+                : '';
+
+              return (
+                <Link
+                  key={collection.handle}
+                  className={`category-card category-${collection.handle}`}
+                  href={`/${locale}/collections/${collection.handle}`}
+                >
+                  {collection.image && (
+                    <img
+                      className="category-card-image"
+                      src={collection.image}
+                      alt=""
+                      loading="lazy"
+                    />
+                  )}
+                  <div className="category-card-top">
+                    <span className="category-number">0{index + 1} · {d.collectionLabel}</span>
+                    <span className="category-count-pill">{d.categoryCount(collectionProducts.length)}</span>
+                  </div>
+                  <div className="category-card-content">
+                    <p>{d.collections[collection.handle]?.[1] || collection.description}</p>
+                    <h3>{d.collections[collection.handle]?.[0] || collection.title}</h3>
+                    <div className="category-card-footer">
+                      <span className="category-card-link">{d.browse} <span aria-hidden="true">↗</span></span>
+                      {fromPrice && <span className="category-from-price">{d.fromPrice(fromPrice)}</span>}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

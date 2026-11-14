@@ -1,12 +1,34 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { locales, t } from '../lib/i18n';
+import { useBag } from './BagProvider';
+
+const LOCALE_PATH_PATTERN = /^\/(en|fr|de|es|pt|pl)(?=\/|$)/;
 
 export default function Header({ locale }) {
+  const pathname = usePathname();
   const d = t(locale);
+  const { items, openBag } = useBag();
+  const itemCount = items.reduce((count, item) => count + item.quantity, 0);
+
+  const languagePath = (language) => {
+    const localizedPath = pathname?.replace(LOCALE_PATH_PATTERN, `/${language}`);
+    return localizedPath && localizedPath !== pathname
+      ? localizedPath
+      : pathname?.startsWith(`/${locale}`)
+        ? `/${language}${pathname.slice(locale.length + 1)}`
+        : `/${language}`;
+  };
 
   return (
     <>
-      <div className="announcement">{d.announcement}</div>
+      <div className="announcement">
+        <span>{d.announcement}</span>
+        <span aria-hidden="true">·</span>
+        <span>{d.announcementPromo}</span>
+      </div>
       <header className="site-header">
         <div className="container header-inner">
           <Link className="brand" href={`/${locale}`} aria-label="Clever Botanics home">
@@ -15,33 +37,37 @@ export default function Header({ locale }) {
               alt="Clever Botanics"
             />
           </Link>
-          <nav className="nav">
-            <Link href={`/${locale}/products`}>{d.shop}</Link>
-            <Link href={`/${locale}/collections/most-popular`}>{d.mostPopular}</Link>
-            <Link href={`/${locale}/about`}>{d.about}</Link>
+          <nav className="nav" aria-label={d.primaryNavigation}>
+            <Link href={`/${locale}/#collections`}>{d.navCollections}</Link>
+            <Link href={`/${locale}/products#catalogue`}>{d.navCatalogue}</Link>
+            <Link href={`/${locale}/about`}>{d.navEthos}</Link>
             <Link href={`/${locale}/contact`}>{d.contact}</Link>
           </nav>
           <div className="header-actions">
-            <div className="lang-links">
+            <div className="lang-links" role="group" aria-label={d.languageSwitcher}>
               {locales.map((language) => (
                 <Link
                   key={language}
-                  href={`/${language}`}
-                  aria-label={`${d.switchLanguage} ${language}`}
-                  className={language === locale ? 'active' : ''}
+                  href={languagePath(language)}
+                  aria-label={`${d.switchLanguage} ${language.toUpperCase()}`}
+                  aria-current={language === locale ? 'page' : undefined}
+                  className={`lang-btn${language === locale ? ' active' : ''}`}
                 >
                   {language.toUpperCase()}
                 </Link>
               ))}
             </div>
-            <a
-              className="header-shop"
-              href="https://cleverbotanics.com/"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              className="header-bag-btn"
+              aria-label={`${d.bagLabel}: ${itemCount}`}
+              aria-haspopup="dialog"
+              onClick={openBag}
             >
-              {d.onlineStore} ↗
-            </a>
+              <span>{d.bagLabel}</span>
+              <span className="bag-count-pill" aria-live="polite">{itemCount}</span>
+            </button>
+            <Link className="header-shop" href={`/${locale}/products`}>{d.shopAll}</Link>
           </div>
         </div>
       </header>

@@ -13,7 +13,7 @@ export default async function Products({ params }) {
   const d = t(locale);
 
   return (
-    <section className="section page-section">
+    <section className="section page-section" id="catalogue">
       <div className="container">
         <div className="page-intro">
           <span className="eyebrow">{d.catalogueLabel}</span>
