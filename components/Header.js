@@ -38,7 +38,7 @@ export default function Header({ locale }) {
             />
           </Link>
           <nav className="nav" aria-label={d.primaryNavigation}>
-            <Link href={`/${locale}/#collections`}>{d.navCollections}</Link>
+            <Link href={`/${locale}/collections/most-popular`}>{d.mostPopular}</Link>
             <Link href={`/${locale}/products#catalogue`}>{d.navCatalogue}</Link>
             <Link href={`/${locale}/about`}>{d.navEthos}</Link>
             <Link href={`/${locale}/contact`}>{d.contact}</Link>
