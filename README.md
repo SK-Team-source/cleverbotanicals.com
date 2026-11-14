@@ -27,7 +27,11 @@ Optionally configure a **Storefront API access token** using `SHOPIFY_STOREFRONT
 - `/{locale}/collections/{handle}` collections
 - `/{locale}/about` and `/{locale}/contact`
 
-`locale` can be `en`, `fr`, `de`, `es`. Interface strings have draft translations; **product content is English until Shopify localized translations are implemented**. Do not market these as fully translated locales yet. For production, consider restricting published locales to English until localized content is approved.
+`locale` can be `en`, `fr`, `de`, `es`, `pt` (Portuguese for Portugal), or `pl`. Storefront interface copy is localized in all six locales. Product titles, descriptions, prices, variants, and availability are rendered from Shopify as published; product content is not translated locally. Keep Shopify product metadata accurate and complete.
+
+The shopping bag stores selected Shopify variant IDs in browser `localStorage` and builds a Shopify cart link for checkout. The bag estimates a 20% automatic discount; configure the matching automatic discount in Shopify so it is applied at checkout. Shopify remains responsible for confirming the final price, discount eligibility, shipping, and payment.
+
+Optional product-specification tags are read only when Shopify supplies them. The storefront recognizes `Potency: ...`, `CBD mg: ...`, `THC: ...`, `Terpenes: ...`, `COA: ...`, `Batch: ...`, and `Extract type: ...`; missing fields are not displayed. Product options and their prices come from Shopify variants.
 
 ## Before production
 
@@ -36,9 +40,10 @@ Optionally configure a **Storefront API access token** using `SHOPIFY_STOREFRONT
 3. Confirm Shopify contact link and original brand content, policies, and footer information.
 4. Complete original-site page/content migration and obtain approved original homepage banners.
 5. Review UK/EU CBD marketing, age restrictions and regional rules.
-6. Choose an SEO canonical/indexing policy for duplicated Shopify product pages.
-7. Add real localized product descriptions and correct language-specific checkout routing before enabling non-English locales.
-8. Run `npm run build`, check Vercel logs, and validate domain DNS.
+6. Confirm the 20% automatic discount and £75 shipping threshold are configured for the Shopify store.
+7. Choose an SEO canonical/indexing policy for duplicated Shopify product pages.
+8. Add real localized product descriptions and correct language-specific checkout routing before enabling non-English locales.
+9. Run `npm run build`, check Vercel logs, and validate domain DNS.
 
 ## Important
 
