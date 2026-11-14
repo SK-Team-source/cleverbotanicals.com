@@ -1,8 +1,43 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getProduct, getProducts } from '../../../../lib/shopify';
-import { getCurrencyLocale, t } from '../../../../lib/i18n';
+import { getProductSpecs } from '../../../../lib/product-data';
+import { t } from '../../../../lib/i18n';
 import ProductCard from '../../../../components/ProductCard';
+import ProductPurchasePanel from '../../../../components/ProductPurchasePanel';
+
+function splitDescription(description, wordLimit) {
+  const excerpt = [];
+  const remaining = [];
+  let wordCount = 0;
+  let isRemaining = false;
+
+  for (const paragraph of description.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean)) {
+    const words = paragraph.split(/\s+/);
+    if (isRemaining || wordCount >= wordLimit) {
+      remaining.push(paragraph);
+      isRemaining = true;
+      continue;
+    }
+
+    const availableWords = wordLimit - wordCount;
+    if (words.length <= availableWords) {
+      excerpt.push(paragraph);
+      wordCount += words.length;
+      continue;
+    }
+
+    excerpt.push(words.slice(0, availableWords).join(' '));
+    remaining.push(words.slice(availableWords).join(' '));
+    wordCount = wordLimit;
+    isRemaining = true;
+  }
+
+  return {
+    excerpt: excerpt.join('\n\n'),
+    remaining: remaining.join('\n\n'),
+  };
+}
 
 export async function generateMetadata({ params }) {
   const { handle } = await params;
@@ -33,14 +68,12 @@ export default async function Product({ params }) {
   const recommendations = relatedProducts.length
     ? relatedProducts
     : allProducts.filter((item) => item.handle !== product.handle).slice(0, 4);
-  const descriptionWords = product.description?.trim().split(/\s+/) || [];
-  const hasLongDescription = descriptionWords.length > 80;
-  const descriptionExcerpt = hasLongDescription
-    ? descriptionWords.slice(0, 80).join(' ')
-    : product.description;
-  const remainingDescription = hasLongDescription
-    ? descriptionWords.slice(80).join(' ')
-    : '';
+  const { excerpt: descriptionExcerpt, remaining: remainingDescription } = splitDescription(
+    product.description || '',
+    80,
+  );
+  const hasLongDescription = Boolean(remainingDescription);
+  const specs = getProductSpecs(product.tags);
 
   return (
     <section className="section page-section">
@@ -49,48 +82,27 @@ export default async function Product({ params }) {
           ← {d.back}
         </Link>
         <div className="detail-grid">
-          <div className="detail-image">
-            {product.image ? (
-              <img src={product.image} alt={product.alt || product.title} />
-            ) : (
-              <div className="image-placeholder">
-                <span>CB</span>
-                <small>{d.productImagePlaceholder}</small>
-              </div>
+          <div
+            className={`detail-image img-fallback-slot${product.image ? '' : ' is-missing'}`}
+            data-fallback-label={d.productImagePlaceholder}
+          >
+            {product.image && (
+              <img
+                src={product.image}
+                alt={product.alt || product.title}
+              />
             )}
+            {specs.potency && <span className="product-spec-pill">{specs.potency}</span>}
+            {specs.coa && <span className="product-coa-badge">{specs.coa}</span>}
           </div>
-          <div>
-            <span className="eyebrow">{d.productLabel}</span>
-            <h1>{product.title}</h1>
-            {product.description && (
-              <div className="product-description">
-                <p className="detail-desc">{descriptionExcerpt}</p>
-                {hasLongDescription && (
-                  <details className="product-description-more">
-                    <summary>{d.readFullDescription}</summary>
-                    <p className="detail-desc">{remainingDescription}</p>
-                  </details>
-                )}
-              </div>
-            )}
-            {product.price && (
-              <p className="price">
-                {new Intl.NumberFormat(getCurrencyLocale(locale), {
-                  style: 'currency',
-                  currency: product.price.currencyCode,
-                }).format(Number(product.price.amount))}
-              </p>
-            )}
-            <a
-              className="btn btn-dark"
-              href={product.url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {d.purchase} ↗
-            </a>
-            <p className="small-muted">{d.variantNotice}</p>
-          </div>
+          <ProductPurchasePanel
+            key={product.id}
+            product={product}
+            locale={locale}
+            descriptionExcerpt={descriptionExcerpt}
+            remainingDescription={remainingDescription}
+            hasLongDescription={hasLongDescription}
+          />
         </div>
         {recommendations.length > 0 && (
           <section className="related-products" aria-labelledby="related-products-heading">

@@ -1,22 +1,44 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 
-export default function HeroCarousel({ children, slides, labels }) {
+export default function HeroCarousel({
+  slides,
+  labels,
+  primaryHref,
+  primaryLabel,
+  secondaryHref,
+  secondaryLabel,
+  metrics,
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
   const pointerStartX = useRef(null);
+
+  useEffect(() => {
+    if (slides.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % slides.length);
+    }, 6500);
+    return () => window.clearInterval(timer);
+  }, [slides.length]);
 
   if (!slides.length) return null;
 
   const showSlide = (index) => {
     setActiveIndex((index + slides.length) % slides.length);
   };
+  const activeSlide = slides[activeIndex];
 
   return (
     <section
       className="hero"
       aria-roledescription="carousel"
       aria-label={labels.carousel}
+      tabIndex={0}
       onKeyDown={(event) => {
         if (event.key === 'ArrowLeft') {
           event.preventDefault();
@@ -55,7 +77,38 @@ export default function HeroCarousel({ children, slides, labels }) {
         ))}
       </div>
       <div className="container hero-grid">
-        {children}
+        <div className="hero-content" aria-live="polite">
+          <span className="hero-spec-pill">
+            <span className="hero-spec-dot" aria-hidden="true" />
+            <span>{activeSlide.badge}</span>
+          </span>
+          <h1>{activeSlide.title} <em>{activeSlide.titleEm}</em></h1>
+          <p>{activeSlide.description}</p>
+          <div className="hero-actions">
+            <Link className="btn btn-light" href={primaryHref}>
+              {primaryLabel} <span aria-hidden="true">↗</span>
+            </Link>
+            <a
+              className="btn btn-outline"
+              href={secondaryHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {secondaryLabel} <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+          <div className="hero-metrics-strip" aria-label={labels.metrics}>
+            {metrics.map((metric, index) => (
+              <span className="hero-metric-group" key={metric.label}>
+                {index > 0 && <span className="hero-metric-divider" aria-hidden="true" />}
+                <span className="hero-metric">
+                  <strong>{metric.value}</strong>
+                  <span>{metric.label}</span>
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
         <div className="hero-carousel-controls">
           <span className="hero-carousel-count" aria-live="polite">
             {String(activeIndex + 1).padStart(2, '0')}

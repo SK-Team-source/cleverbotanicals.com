@@ -17,11 +17,13 @@ export default async function Collection({params}) {
       <div className="container">
         <div className={`collection-intro ${handle === 'most-popular' ? 'collection-intro-most-popular' : ''}`}>
           {col.image && (
-            <img
-              src={col.image}
-              alt={handle === 'most-popular' ? 'Botanical CBD products from Clever Botanics' : ''}
-              className="collection-intro-image"
-            />
+            <div className="collection-intro-media img-fallback-slot">
+              <img
+                src={col.image}
+                alt=""
+                className="collection-intro-image"
+              />
+            </div>
           )}
           <div className="collection-intro-copy">
             <span className="eyebrow">{d.collectionLabel}</span>
@@ -30,7 +32,12 @@ export default async function Collection({params}) {
           </div>
         </div>
         <ProductBrowser products={products} locale={locale}/>
-        <p className="notice">{d.collectionNotice} <a href={`https://cleverbotanics.com/collections/${handle}`} target="_blank" rel="noopener noreferrer">Shopify ↗</a>.</p>
+        <p className="notice">
+          {d.collectionNotice}{' '}
+          <a href={`https://cleverbotanics.com/collections/${handle}`} target="_blank" rel="noopener noreferrer">
+            {d.shopifyStore} ↗
+          </a>.
+        </p>
       </div>
     </section>
   );
